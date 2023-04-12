@@ -1,7 +1,10 @@
 import { generate } from 'astring'
 import * as es from 'estree'
 
+// import { handleRuntimeError } from '../ec-evaluator/utils'
 import * as errors from '../errors/errors'
+// import { loadModuleTabs } from '../modules/moduleLoader'
+// import { loadModuleBundle } from '../modules/moduleLoader'
 import { parse } from '../parser/parser'
 import {
   BlockExpression,
@@ -10,6 +13,7 @@ import {
   ContiguousArrayElements,
   FunctionDeclarationExpression,
   substituterNodes
+  // , Value
 } from '../types'
 import * as ast from '../utils/astCreator'
 import {
@@ -25,6 +29,8 @@ import * as rttc from '../utils/rttc'
 import { nodeToValue, valueToExpression } from './converter'
 import * as builtin from './lib'
 import { getDeclaredNames, isAllowedLiterals, isBuiltinFunction, isNegNumber } from './util'
+import { RUNE_FUNCTIONS } from './mods/runes/functions'
+import { RUNE_CONSTANTS } from './mods/runes/constants'
 
 const irreducibleTypes = new Set<string>([
   'Literal',
@@ -444,7 +450,7 @@ function substituteMain(
         target.operator,
         dummyExpression(),
         dummyExpression(),
-        target.loc
+        target.loc!
       )
       seenBefore.set(target, substedBinaryExpression)
       let nextIndex = index
@@ -462,7 +468,7 @@ function substituteMain(
       const substedUnaryExpression = ast.unaryExpression(
         target.operator,
         dummyExpression(),
-        target.loc
+        target.loc!
       )
       seenBefore.set(target, substedUnaryExpression)
       if (pathNotEnded(index)) {
@@ -480,7 +486,7 @@ function substituteMain(
         dummyExpression(),
         dummyExpression(),
         dummyExpression(),
-        target.loc
+        target.loc!
       )
       seenBefore.set(target, substedConditionalExpression)
       let nextIndex = index
@@ -524,7 +530,7 @@ function substituteMain(
 
     CallExpression(target: es.CallExpression, index: number): es.CallExpression {
       const dummyArgs = target.arguments.map(() => dummyExpression())
-      const substedCallExpression = ast.callExpression(dummyExpression(), dummyArgs, target.loc)
+      const substedCallExpression = ast.callExpression(dummyExpression(), dummyArgs, target.loc!)
       seenBefore.set(target, substedCallExpression)
       const arr: number[] = []
       let nextIndex = index
@@ -971,7 +977,7 @@ function substituteMain(
     },
 
     ReturnStatement(target: es.ReturnStatement, index: number): es.ReturnStatement {
-      const substedReturnStatement = ast.returnStatement(dummyExpression(), target.loc)
+      const substedReturnStatement = ast.returnStatement(dummyExpression(), target.loc!)
       seenBefore.set(target, substedReturnStatement)
       if (pathNotEnded(index)) {
         allPaths[index].push('argument')
@@ -1120,7 +1126,7 @@ function substituteMain(
         dummyExpression(),
         dummyBlockStatement(),
         dummyBlockStatement(),
-        target.loc
+        target.loc!
       )
       seenBefore.set(target, substedIfStatement)
       let nextIndex = index
@@ -1368,7 +1374,17 @@ function reduceMain(
         bodify(target.elements[0] as ContiguousArrayElementExpression) +
         ', ' +
         bodify(target.elements[1] as ContiguousArrayElementExpression) +
-        ']'
+        ']',
+
+      ImportDeclaration: (target: es.ImportDeclaration): string => {
+        let specifierText = ''
+        for (const specifier of target.specifiers) {
+          specifierText +=
+            'Declared ' + specifier['imported']['name'] + ' as ' + specifier['local']['name'] + '\n'
+        }
+
+        return 'Imported ' + bodify(target.source) + ' module \n' + specifierText
+      }
     }
 
     const bodifier = bodifiers[target.type]
@@ -1457,6 +1473,10 @@ function reduceMain(
             ? 'condition true, proceed to if block'
             : 'condition false, proceed to else block')
         )
+      },
+
+      ImportDeclaration: (target: es.ImportDeclaration): string => {
+        return 'Imported ' + bodify(target) + ' module'
       }
     }
 
@@ -1477,6 +1497,7 @@ function reduceMain(
       } else {
         return [node, context, paths, 'identifier']
       }
+      // return [node, context, paths, 'identifier']
     },
 
     ExpressionStatement(
@@ -1526,7 +1547,7 @@ function reduceMain(
             operator,
             left,
             reducedRight as es.Expression,
-            node.loc
+            node.loc!
           )
           return [reducedExpression, cont, path, str]
         }
@@ -1537,7 +1558,7 @@ function reduceMain(
           operator,
           reducedLeft as es.Expression,
           right,
-          node.loc
+          node.loc!
         )
         return [reducedExpression, cont, path, str]
       }
@@ -1565,7 +1586,7 @@ function reduceMain(
         const reducedExpression = ast.unaryExpression(
           operator,
           reducedArgument as es.Expression,
-          node.loc
+          node.loc!
         )
         return [reducedExpression, cont, path, str]
       }
@@ -1596,7 +1617,7 @@ function reduceMain(
           reducedTest as es.Expression,
           consequent,
           alternate,
-          node.loc
+          node.loc!
         )
         return [reducedExpression, cont, path, str]
       }
@@ -1616,9 +1637,9 @@ function reduceMain(
             node.operator === '&&'
               ? left.value
                 ? right
-                : ast.literal(false, node.loc)
+                : ast.literal(false, node.loc!)
               : left.value
-              ? ast.literal(true, node.loc)
+              ? ast.literal(true, node.loc!)
               : right
           return [result as es.Expression, context, paths, explain(node)]
         }
@@ -1630,7 +1651,7 @@ function reduceMain(
             node.operator,
             reducedLeft as es.Expression,
             right,
-            node.loc
+            node.loc!
           ) as substituterNodes,
           cont,
           path,
@@ -1652,7 +1673,7 @@ function reduceMain(
         paths[0].push('callee')
         const [reducedCallee, cont, path, str] = reduce(callee, context, paths)
         return [
-          ast.callExpression(reducedCallee as es.Expression, args as es.Expression[], node.loc),
+          ast.callExpression(reducedCallee as es.Expression, args as es.Expression[], node.loc!),
           cont,
           path,
           str
@@ -1682,7 +1703,7 @@ function reduceMain(
                 ast.callExpression(
                   callee as es.Expression,
                   reducedArgs as es.Expression[],
-                  node.loc
+                  node.loc!
                 ),
                 cont,
                 path,
@@ -1719,6 +1740,23 @@ function reduceMain(
       }
     },
 
+    // ImportDeclaration(
+    //   node: es.ImportDeclaration,
+    //   context: Context,
+    //   paths: string[][]){
+    //     try{
+    //       const moduleName = node.source.value as string
+    //       if (!(moduleName in context.moduleContexts)) {
+    //         context.moduleContexts[moduleName] = {
+    //           state: null,
+    //           tabs: loadModuleTabs(moduleName, node)
+    //         };
+    //       }
+    //     } catch(error) {
+    //       handleRuntimeError(context, error)
+    //     }
+    //   },
+
     Program(
       node: es.Program,
       context: Context,
@@ -1728,6 +1766,11 @@ function reduceMain(
         return [ast.expressionStatement(ast.identifier('undefined')), context, paths, explain(node)]
       } else {
         const [firstStatement, ...otherStatements] = node.body
+        if (firstStatement.type === 'ImportDeclaration') {
+          paths[0].push('body[0]')
+          paths.push([])
+          return [ast.program(otherStatements as es.Statement[]), context, paths, explain(node)]
+        }
         if (firstStatement.type === 'ReturnStatement') {
           return [firstStatement, context, paths, explain(node)]
         } else if (firstStatement.type === 'IfStatement') {
@@ -2274,7 +2317,7 @@ function reduceMain(
           reducedTest as es.Expression,
           consequent as es.BlockStatement,
           alternate as es.IfStatement | es.BlockStatement,
-          node.loc
+          node.loc!
         )
         return [reducedIfStatement, cont, path, str]
       }
@@ -2890,6 +2933,63 @@ export const redexify = (node: substituterNodes, path: string[][]): [string, str
 export const getRedex = (node: substituterNodes, path: string[][]): substituterNodes =>
   pathifyMain(node, path)[1]
 
+// function defineVariable(context: Context, name: string, value: Value, constant = false) {
+//   const currentEnvironment = (context: Context) => context.runtime.environments[0]
+//   const environment = currentEnvironment(context)
+
+//   if (environment.head[name] !== undefined) {
+//     return handleRuntimeError(
+//       context,
+//       new errors.VariableRedeclaration(context.runtime.nodes[0]!, name, !constant)
+//     )
+//   }
+
+//   if (typeof value == 'object') {
+//     value = '&#x2764'
+//   }
+//   Object.defineProperty(environment.head, name, {
+//     value,
+//     writable: !constant,
+//     enumerable: true
+//   })
+
+//   return environment
+// }
+
+// function substImportImage(context: Context, name: string, value: Value) {
+//   const currentEnvironment = (context: Context) => context.runtime.environments[0]
+//   const environment = currentEnvironment(context)
+
+// }
+
+// function handleImport(node: es.ImportDeclaration, context: Context) {
+//   // load SA modules here as predefined functions
+//   const moduleName = node.source.value as string
+//   const neededSymbols = node.specifiers.map(spec => {
+//     if (spec.type !== 'ImportSpecifier') {
+//       throw new Error(
+//         `I expected only ImportSpecifiers to be allowed, but encountered ${spec.type}.`
+//       )
+//     }
+
+//     return {
+//       imported: spec.imported.name,
+//       local: spec.local.name
+//     }
+//   })
+//   if (!(moduleName in context.moduleContexts)) {
+//     context.moduleContexts[moduleName] = {
+//       state: null,
+//       tabs: loadModuleTabs(moduleName, node)
+//     }
+//   }
+//   const functions = loadModuleBundle(moduleName, context, node)
+//   console.log(context)
+//   for (const name of neededSymbols) {
+//     defineVariable(context, name.local, functions[name.imported], true)
+//   }
+// }
+
 // strategy: we remember how many statements are there originally in program.
 // since listPrelude are just functions, they will be disposed of one by one
 // we prepend the program with the program resulting from the definitions,
@@ -2897,20 +2997,33 @@ export const getRedex = (node: substituterNodes, path: string[][]): substituterN
 //   has number of statement === original program
 // then we return it to the getEvaluationSteps
 function substPredefinedFns(program: es.Program, context: Context): [es.Program, Context] {
+  // if (program.body[0].type == "ImportDeclaration") {
+  //   console.log('hit handle')
+  //   handleImport(program.body[0], context)
+  // }
+  console.log(context)
+  context.prelude += RUNE_FUNCTIONS;
+
   if (context.prelude) {
     // replace all occurences of '$' with 'helper_' to
     // prevent collision with redex (temporary solution)
     // context.prelude = context.prelude.replace(/\$/gi, 'helper_')
     // evaluate the list prelude first
     const listPreludeProgram = parse(context.prelude, context)!
+    // console.log('success parse')
     const origBody = program.body as es.Statement[]
     program.body = listPreludeProgram.body
     program.body.push(ast.blockStatement(origBody))
     while (program.body.length > 1) {
       program = reduceMain(program, context)[0] as es.Program
     }
+    // console.log('success reduce')
     program.body = (program.body[0] as es.BlockStatement).body
   }
+  
+  // console.log('hit here')
+  // console.log(context.prelude)
+  // console.log(context)
   return [program, context]
 }
 
@@ -2919,8 +3032,10 @@ function substPredefinedConstants(program: es.Program): es.Program {
   const mathConstants = Object.getOwnPropertyNames(Math)
     .filter(name => typeof Math[name] !== 'function')
     .map(name => ['math_' + name, Math[name]])
+  const runeConstants = RUNE_CONSTANTS;
   let substed = program
-  for (const nameValuePair of constants.concat(mathConstants)) {
+  for (const nameValuePair of constants.concat(mathConstants).concat(runeConstants)) {
+    // console.log(nameValuePair)
     substed = substituteMain(
       ast.identifier(nameValuePair[0] as string),
       ast.literal(nameValuePair[1] as string | number) as es.Literal,
@@ -2967,6 +3082,10 @@ export function getEvaluationSteps(
     start = substPredefinedFns(start, context)[0]
     // and remove debugger statements.
     start = removeDebuggerStatements(start)
+
+    // console.log('context')
+    // console.log(context)
+    // console.log(builtin)
 
     // then add in path and explanation string
     let reducedWithPath: [substituterNodes, Context, string[][], string] = [

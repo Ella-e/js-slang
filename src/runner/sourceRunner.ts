@@ -130,6 +130,8 @@ async function runNative(
     }
   }
 
+  console.log("in native")
+
   // For whatever reason, the transpiler mutates the state of the AST as it is transpiling and inserts
   // a bunch of global identifiers to it. Once that happens, the infinite loop detection instrumentation
   // ends up generating code that has syntax errors. As such, we need to make a deep copy here to preserve

@@ -156,3 +156,27 @@ export function draw_data(...xs: substituterNodes[]): substituterNodes {
     return xs[0]
   }
 }
+
+export function $beside(str:es.Literal, str2:es.Literal): es.Literal {
+  return ast.literal(misc.$beside(str.value, str2.value))
+}
+
+export function $stack(str:es.Literal, str2:es.Literal): es.Literal {
+  return ast.literal(misc.$stack(str.value, str2.value))
+}
+
+export function $beside_frac(frac:es.Literal, r1:es.Literal, r2:es.Literal): es.Literal {
+  return ast.literal(misc.$beside_frac(frac.value, r1.value, r2.value))
+}
+
+export function $set_color(rune:es.Literal, str:es.Literal): es.Literal{
+  return ast.literal(misc.$set_color(rune.value, str.value))
+}
+
+export function $set_dir(rune:es.Literal, str:es.Literal): es.Literal {
+  return ast.literal(misc.$set_dir(rune.value, str.value))
+}
+
+export function $make_cross(rune:es.Literal): es.Literal {
+  return ast.literal(misc.$make_cross(rune.value))
+}

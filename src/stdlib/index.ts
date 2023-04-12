@@ -18,7 +18,13 @@ export const chapter_1 = {
   arity: misc.arity,
   undefined: undefined,
   NaN: NaN,
-  Infinity: Infinity
+  Infinity: Infinity,
+  $beside:misc.$beside,
+  $stack: misc.$stack,
+  $beside_frac:misc.$beside_frac,
+  $set_color: misc.$set_color,
+  $set_dir:misc.$set_dir,
+  $make_cross:misc.$make_cross
 }
 
 export const chapter_2 = {

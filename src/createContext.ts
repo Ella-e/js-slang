@@ -292,6 +292,12 @@ export const importBuiltins = (context: Context, externalBuiltIns: CustomBuiltIn
     defineBuiltin(context, 'undefined', undefined)
     defineBuiltin(context, 'NaN', NaN)
     defineBuiltin(context, 'Infinity', Infinity)
+    defineBuiltin(context, '$beside(r1, r2)', misc.$beside)
+    defineBuiltin(context, '$stack(r1, r2)', misc.$stack)
+    defineBuiltin(context, '$beside_frac(frac, r1, r2)', misc.$beside_frac)
+    defineBuiltin(context, '$set_color(rune, str)', misc.$set_color)
+    defineBuiltin(context, '$set_dir(rune, str)', misc.$set_dir)
+    defineBuiltin(context, '$make_cross(rune, str)', misc.$make_cross)
     // Define all Math libraries
     const mathLibraryNames = Object.getOwnPropertyNames(Math)
     // Short param names for stringified version of math functions

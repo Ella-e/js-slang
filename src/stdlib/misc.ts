@@ -132,3 +132,48 @@ export function arity(f: Function) {
 export function get_time() {
   return new Date().getTime()
 }
+
+export function $beside(r1:any, r2:any) {
+  console.log('in mistc.ts')
+  return "(" + r1 + "|" + r2 + ")";
+}
+
+export function $stack(r1:any, r2:any) {
+  console.log('in mistc.ts')
+  return "(" + r1 + "S" + r2 + ")";
+}
+
+export function $beside_frac(frac:Value, r1:any, r2:any) {
+  return frac == 1
+      ? r1 
+      : frac == 0
+      ? r2
+      : frac < 1 && frac > 0 
+      ? frac + "(" + r1  + ")" + "|" + (1-frac) +"(" + r2 + ")" 
+      : "invalid frac";
+}
+
+const RUNE_COLOR_DIC = {'❤': {'red': '💗', 'blue': '💙'}};
+// const RUNE_DIR_DIC = {'❤': {'org': '❤', 'left': '❥', 'right':'☙'}};
+
+export function $set_color(rune:any, str:any) {
+  return RUNE_COLOR_DIC[rune][str]
+}
+
+export function $set_dir(rune:any, str:any) {
+  switch (str) {
+    case "flip_horiz" :
+      switch(rune) {
+        case "❤":
+          return rune
+        case "◣":
+          return "◢"
+      }
+    default:
+      return str + "(" + rune + ")"
+  }
+}
+
+export function $make_cross(rune:any) {
+  return $stack($beside(rune, $set_dir(rune, "right")), $beside($set_dir(rune, "left"), $set_dir(rune, "down")))
+}

@@ -167,3 +167,9 @@ function char_at(s, i) {}
  */
  function arity(f) {
  }
+
+//  function my_beside(r1, r2) {}
+
+//  function $my_stack(r1, r2) {}
+
+//  function $beside_frac(frac, r1, r2) {}
